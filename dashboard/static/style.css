@@ -1,4 +1,20 @@
 
+:root {
+    --bordo-puc: #8A0538;
+    --vermelho-puc: #FF0040;
+    --roxo-puc: #9654FF;
+    --branco: #FFFFFF;
+
+    --fundo: #F7F7F8;
+    --texto: #252329;
+    --texto-secundario: #625E66;
+    --borda: #DED9DF;
+
+    --disponivel: #27804E;
+    --ocupada: #B54747;
+    --desconhecida: #89939C;
+}
+
 * {
     box-sizing: border-box;
 }
@@ -6,14 +22,15 @@
 body {
     margin: 0;
     font-family: Arial, sans-serif;
-    background: #f4f5f6;
-    color: #20252a;
+    background: var(--fundo);
+    color: var(--texto);
 }
 
 header {
-    background: #202a33;
-    color: white;
+    background: var(--bordo-puc);
+    color: var(--branco);
     padding: 24px 5%;
+    border-bottom: 4px solid var(--vermelho-puc);
 }
 
 header h1 {
@@ -23,7 +40,7 @@ header h1 {
 
 header p {
     margin-bottom: 0;
-    color: #cbd2d8;
+    color: #F5DDE6;
 }
 
 main {
@@ -38,20 +55,27 @@ main {
     gap: 16px;
 }
 
-.metrics article, .room {
-    background: white;
-    border: 1px solid #d6dce0;
+.metrics article,
+.room {
+    background: var(--branco);
+    border: 1px solid var(--borda);
     padding: 20px;
+}
+
+.metrics article {
+    border-top: 3px solid var(--bordo-puc);
 }
 
 .metrics h2 {
     font-size: 14px;
     font-weight: normal;
+    color: var(--texto-secundario);
     margin: 0 0 12px;
 }
 
 .metrics strong {
     font-size: 32px;
+    color: var(--bordo-puc);
 }
 
 .rooms {
@@ -60,32 +84,101 @@ main {
 }
 
 .room {
-    border-left: 5px solid #89939c;
+    border-left: 5px solid var(--desconhecida);
 }
 
 .room.available {
-    border-left-color: #2b8055;
+    border-left-color: var(--disponivel);
 }
 
 .room.occupied {
-    border-left-color: #b35c36;
+    border-left-color: var(--ocupada);
 }
 
 .room.unknown {
-    border-left-color: #89939c;
+    border-left-color: var(--desconhecida);
 }
 
 .room h3 {
     margin-top: 0;
+    color: var(--bordo-puc);
+}
+
+.room strong {
+    color: var(--texto);
+}
+
+.room.available strong {
+    color: var(--disponivel);
+}
+
+.room.occupied strong {
+    color: var(--ocupada);
+}
+
+.room.unknown strong {
+    color: var(--desconhecida);
 }
 
 .room p {
-    color: #58636d;
+    color: var(--texto-secundario);
     font-size: 14px;
 }
 
+
 @media (max-width: 600px) {
+    header {
+        padding: 18px 20px;
+    }
+
+    header h1 {
+        font-size: 24px;
+        letter-spacing: 1px;
+        line-height: 1.3;
+    }
+
+    header p {
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    main {
+        margin: 20px auto;
+        padding: 0 16px;
+    }
+
     .metrics {
         grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .metrics article {
+        padding: 14px 16px;
+    }
+
+    .metrics h2 {
+        margin-bottom: 6px;
+    }
+
+    .metrics strong {
+        font-size: 28px;
+    }
+
+    .rooms {
+        gap: 10px;
+    }
+
+    .room {
+        padding: 16px;
+    }
+
+    .room h3 {
+        margin-bottom: 8px;
+    }
+
+    .room p {
+        line-height: 1.5;
     }
 }
+
+
