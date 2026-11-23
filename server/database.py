@@ -4,7 +4,7 @@ import sqlite3
 
 DATABASE_PATH = os.getenv(
     "DATABASE_PATH",
-    "/data/smartspace.db"
+    "/data/smartrooms.db"
 )
 
 

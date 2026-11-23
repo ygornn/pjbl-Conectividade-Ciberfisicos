@@ -64,7 +64,6 @@ async function updateDashboard() {
             const details = document.createElement("p");
 
             details.textContent =
-                `Pessoas: ${room.connected ? room.occupancy : "—"} | ` +
                 `Temperatura: ${measurement(room.temperature, "°C")}`;
 
             card.append(title, status, details);

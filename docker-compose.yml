@@ -3,32 +3,32 @@ services:
 
   mosquitto:
     image: eclipse-mosquitto:2
-    container_name: smartspace-broker
+    container_name: smartrooms-broker
     volumes:
       - ./broker/mosquitto.conf:/mosquitto/config/mosquitto.conf
       - mqtt_data:/mosquitto/data
     networks:
-      - smartspace-net
+      - smartrooms-net
 
   sensors:
     build: ./sensors
-    container_name: smartspace-sensors
+    container_name: smartrooms-sensors
     environment:
       MQTT_HOST: mosquitto
     depends_on:
       - mosquitto
     restart: unless-stopped
     networks:
-      - smartspace-net
+      - smartrooms-net
 
   server:
     build:
       context: .
       dockerfile: server/Dockerfile
-    container_name: smartspace-server
+    container_name: smartrooms-server
     environment:
       MQTT_HOST: mosquitto
-      DATABASE_PATH: /data/smartspace.db
+      DATABASE_PATH: /data/smartrooms.db
       PYTHONUNBUFFERED: 1
     ports:
       - "8001:8000"
@@ -38,10 +38,10 @@ services:
       - mosquitto
     restart: unless-stopped
     networks:
-      - smartspace-net
+      - smartrooms-net
 
 networks:
-  smartspace-net:
+  smartrooms-net:
     driver: bridge
 
 volumes:
