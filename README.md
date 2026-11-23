@@ -1,302 +1,349 @@
-# SmartSpace
+# SmartRooms
 
-**Sistema de monitoramento inteligente de ambientes de estudo utilizando IoT, Python, MQTT e Docker.**
+**Sistema de monitoramento da disponibilidade de salas de estudo da Biblioteca Central da PUCPR, desenvolvido com Python, MQTT, Flask, SQLite e Docker.**
 
 ## 1. Sobre o projeto
 
-O SmartSpace é um sistema de monitoramento de ambientes de estudo que simula o funcionamento de sensores IoT instalados em salas de uma biblioteca universitária.
+O SmartRooms é uma aplicação que simula sensores IoT instalados em três salas de estudo. Os sensores virtuais geram medições de temperatura e ocupação e publicam esses dados periodicamente por MQTT.
 
-O objetivo é coletar informações sobre as condições ambientais e a ocupação dos espaços, permitindo acompanhar suas condições em tempo real.
+Um servidor Python recebe as mensagens, valida os dados e registra as medições em um banco SQLite. O mesmo servidor disponibiliza uma API HTTP e serve um dashboard web que apresenta o estado das salas.
 
-O sistema utiliza sensores virtuais desenvolvidos em Python, que enviam informações para um broker MQTT. Um servidor recebe e processa esses dados, armazenando as medições em um banco de dados SQLite.
+### Dados monitorados atualmente
 
-### Informações monitoradas
+- **Temperatura:** valor simulado em graus Celsius.
+- **Ocupação:** valor binário (`0` = sala disponível; `1` = sala ocupada).
+- **Horário da medição:** timestamp Unix gerado pelo servidor ao receber a mensagem.
 
-- **Temperatura:** temperatura ambiente da sala.
-- **Ocupação:** se a sala está ocupada ou não.
+> **Escopo da implementação atual:** o simulador não coleta um número real de pessoas, umidade ou ruído. Esses dados não fazem parte do payload implementado neste repositório.
 
-## 2. Arquitetura do sistema
+## 2. Arquitetura
 
-O projeto é dividido em três containers principais:
+O Docker Compose inicia três serviços:
 
-| Container | Responsabilidade |
+| Serviço | Responsabilidade |
 |---|---|
-| `sensors` | Simular sensores IoT e publicar medições. |
-| `mosquitto` | Receber e distribuir mensagens utilizando o protocolo MQTT. |
-| `server` | Receber mensagens, processar informações e armazená-las no SQLite. |
+| `mosquitto` | Broker MQTT que recebe e distribui as mensagens dos sensores. |
+| `sensors` | Simulador Python que publica medições das três salas. |
+| `server` | Cliente MQTT, validação e persistência SQLite, API Flask e servidor do dashboard. |
 
-### Comunicação entre os componentes
+### Fluxo de dados
 
-1. Os sensores virtuais geram medições ambientais.
-2. Os sensores publicam os dados no broker Mosquitto por meio do protocolo MQTT.
-3. O servidor Python recebe as mensagens publicadas.
-4. Os dados são processados e armazenados no banco SQLite.
-5. As informações ficam disponíveis para consultas posteriores e integração com um dashboard.
+1. O simulador gera temperatura e ocupação para `room_A`, `room_B` e `room_C`.
+2. A cada três segundos, publica uma mensagem MQTT por sala.
+3. O Mosquitto recebe as mensagens no tópico `pjbl/{room}/environment`.
+4. O servidor assina `pjbl/+/environment`, valida o payload e grava a medição no SQLite.
+5. O dashboard consulta a API Flask e atualiza os indicadores e cartões das salas a cada cinco segundos.
 
-### Tecnologias utilizadas
+### Tecnologias
 
-- Python 3.11
-- Docker
-- Docker Compose
-- Eclipse Mosquitto
-- MQTT
-- Paho-MQTT
-- SQLite
+- Python 3.13.3 nas imagens dos serviços Python.
+- Docker e Docker Compose.
+- Eclipse Mosquitto 2 (broker MQTT).
+- Paho-MQTT (publicação e assinatura MQTT).
+- Flask (API HTTP e entrega do dashboard).
+- SQLite (persistência das medições).
+- HTML, CSS e JavaScript (interface web).
 
-## 3. Estrutura do projeto
+## 3. Estrutura do repositório
 
 ```text
 pjbl/
-│
+├── docker-compose.yml
+├── README.md
 ├── broker/
 │   └── mosquitto.conf
-│
 ├── sensors/
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   └── simulator.py
-│
 ├── server/
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   ├── main.py
 │   └── database.py
-│
-├── docker-compose.yml
-│
-└── README.md
+└── dashboard/
+    ├── templates/
+    │   └── index.html
+    ├── static/
+    │   ├── dashboard.js
+    │   └── style.css
+    └── requeriments.txt
 ```
+
+O arquivo `dashboard/requeriments.txt` está presente no repositório, mas não é usado pelo Dockerfile atual. As dependências do serviço Flask são instaladas a partir de `server/requirements.txt`.
 
 ## 4. Pré-requisitos
 
-Antes de executar o projeto, é necessário ter instalado:
-
+- Linux Debian (ou outra distribuição compatível), Windows ou macOS.
 - Docker Engine ou Docker Desktop.
-- Docker Compose (plugin `docker compose`).
+- Plugin Docker Compose (`docker compose`).
 
-Para verificar se as ferramentas estão disponíveis, execute:
+Verifique a instalação:
 
 ```bash
 docker --version
 docker compose version
 ```
 
-Não é necessário instalar Python, Paho-MQTT, Flask ou SQLite diretamente na máquina para executar a versão conteinerizada do projeto. As dependências Python são instaladas nas respectivas imagens Docker.
+Não é necessário instalar Python, Flask, Paho-MQTT ou SQLite diretamente no host para executar a versão em containers.
 
-## 5. Inicialização dos containers
+## 5. Configuração e portas
 
-A execução do sistema é realizada por meio do Docker Compose, responsável por construir, inicializar e conectar os containers.
+A configuração atual do Compose utiliza:
 
-### Etapa 1 — Acessar o diretório do projeto
+| Serviço/uso | Porta | Acesso |
+|---|---:|---|
+| Mosquitto MQTT | `1883/TCP` | Interno à rede Docker; não publicada no host. |
+| Flask e dashboard | `8000` no container | Publicada como `8001` no host (`8001:8000`). |
 
-Abra o terminal e navegue até a pasta principal:
+**Atenção:** o endereço no navegador usa a porta **8001**, não 8000, conforme o `docker-compose.yml` deste repositório.
+
+A rede Docker bridge é chamada `smartrooms-net`. Os containers usam o nome do serviço `mosquitto` para encontrar o broker. O servidor recebe as variáveis:
+
+- `MQTT_HOST=mosquitto`
+- `DATABASE_PATH=/data/smartrooms.db`
+- `PYTHONUNBUFFERED=1`
+
+O Mosquitto está configurado atualmente com `allow_anonymous true`. Portanto, a configuração incluída não exige usuário e senha MQTT; ela é apropriada para um ambiente demonstrativo isolado, não para exposição pública.
+
+## 6. Construção e inicialização
+
+Execute os comandos a partir da pasta que contém `docker-compose.yml`.
+
+### 6.1. Entrar na pasta do projeto
 
 ```bash
 cd pjbl
 ```
 
-Certifique-se de que o arquivo `docker-compose.yml` está presente nesse diretório.
-
-### Etapa 2 — Construir as imagens
-
-Execute:
+### 6.2. Construir as imagens
 
 ```bash
 docker compose build
 ```
 
-Esse comando constrói as imagens dos serviços que possuem Dockerfiles, como `sensors` e `server`.
+O Compose constrói as imagens dos serviços `sensors` e `server` e obtém a imagem `eclipse-mosquitto:2` para o broker.
 
-O Mosquitto utiliza uma imagem oficial disponibilizada pelo Docker Hub.
-
-### Etapa 3 — Inicializar os containers
-
-Execute:
+### 6.3. Iniciar os serviços
 
 ```bash
 docker compose up -d
 ```
 
-O parâmetro `-d` executa os containers em segundo plano.
-
-O Docker Compose inicializará:
-
-1. **Mosquitto:** broker responsável pela comunicação MQTT.
-2. **Sensors:** simulador de sensores virtuais.
-3. **Server:** servidor responsável pelo recebimento e armazenamento das medições.
-
-Os containers são conectados à rede privada `smartspace-net`, permitindo a comunicação entre eles por meio dos nomes dos serviços.
-
-### Etapa 4 — Verificar o funcionamento
-
-Para verificar se os containers estão em execução:
+### 6.4. Conferir o estado dos containers
 
 ```bash
 docker compose ps
 ```
 
-Para visualizar os logs:
+Os três serviços devem aparecer em execução. O serviço `server` deve publicar a porta do host `8001` para a porta `8000` do container.
 
-```bash
-docker compose logs
-```
-
-Para visualizar os logs de um serviço específico:
-
-```bash
-docker compose logs sensors
-docker compose logs mosquitto
-docker compose logs server
-```
-
-O servidor deverá apresentar uma mensagem indicando a conexão com o broker MQTT e a inicialização do banco de dados.
-
-O simulador deverá apresentar as medições geradas para cada ambiente.
-
-### Etapa 5 — Acessar o banco de dados
-
-O banco SQLite é armazenado no caminho:
-
-```text
-/data/smartspace.db
-```
-
-Esse diretório está associado ao volume persistente `smartspace_data`.
-
-Para verificar se o arquivo foi criado:
-
-```bash
-docker compose exec server ls -la /data
-```
-
-Para consultar os registros utilizando Python dentro do container:
-
-```bash
-docker compose exec server python
-```
-
-No interpretador Python:
-
-```python
-import sqlite3
-
-conn = sqlite3.connect("/data/smartspace.db")
-cursor = conn.cursor()
-
-cursor.execute("SELECT * FROM measurements")
-
-for row in cursor.fetchall():
-    print(row)
-
-conn.close()
-```
-
-## 6. Gerenciamento dos containers
-
-### Visualizar os containers ativos
-
-```bash
-docker compose ps
-```
-
-### Visualizar os logs em tempo real
+### 6.5. Acompanhar os logs
 
 ```bash
 docker compose logs -f
 ```
 
-Para acompanhar apenas o servidor:
+Para acompanhar apenas um serviço:
 
 ```bash
+docker compose logs -f sensors
+docker compose logs -f mosquitto
 docker compose logs -f server
 ```
 
-### Reiniciar os serviços
+No servidor, mensagens esperadas incluem a inicialização do banco, a conexão com o broker e a assinatura do tópico `pjbl/+/environment`. O simulador imprime as medições geradas para cada sala.
 
-```bash
-docker compose restart
+Para interromper a visualização contínua dos logs, pressione `Ctrl+C`. Isso encerra o acompanhamento, não os containers.
+
+## 7. Acessar o dashboard e a API
+
+### Dashboard
+
+Com os containers em execução, abra no navegador:
+
+**http://localhost:8001/dashboard**
+
+O dashboard apresenta:
+- quantidade de salas disponíveis;
+- quantidade de salas ocupadas;
+- quantidade de salas sem dados atuais;
+- cartões das três salas com estado e temperatura;
+- horário da última atualização da interface.
+
+O JavaScript consulta a API a cada cinco segundos. Se os dados de uma sala tiverem mais de 60 segundos, o servidor a considera sem conexão atual e o dashboard mostra o estado correspondente.
+
+Para acessar a partir de outro computador na mesma rede, use o endereço IP do host Debian:
+
+```text
+http://IP_DO_DEBIAN:8001/dashboard
 ```
 
-### Parar os containers
+Descubra o IP com:
 
 ```bash
-docker compose stop
+hostname -I
 ```
 
-### Parar e remover os containers
+Se o acesso remoto não funcionar, verifique o mapeamento de portas do Docker e as regras do firewall do host. A aplicação precisa estar em execução e a porta TCP 8001 deve estar liberada para a rede autorizada.
+
+### API
+
+O servidor também disponibiliza os seguintes endpoints:
+
+| Método | Endpoint | Descrição |
+|---|---|---|
+| `GET` | `/` | Retorna um JSON informando que a API está operacional. |
+| `GET` | `/api/rooms` | Retorna o estado e a última medição de cada sala. |
+| `GET` | `/api/rooms/room_A` | Retorna os dados da sala indicada. |
+| `GET` | `/api/metrics` | Retorna os totais de salas disponíveis, ocupadas, conectadas e sem dados atuais. |
+
+Exemplos de URLs locais:
+
+```text
+http://localhost:8001/
+http://localhost:8001/api/rooms
+http://localhost:8001/api/rooms/room_A
+http://localhost:8001/api/metrics
+```
+
+A rota `/` retorna JSON; para abrir a interface gráfica, use `/dashboard`.
+
+## 8. MQTT e formato das mensagens
+
+O simulador publica nos tópicos:
+
+```text
+pjbl/room_A/environment
+pjbl/room_B/environment
+pjbl/room_C/environment
+```
+
+O servidor assina o filtro:
+
+```text
+pjbl/+/environment
+```
+
+Exemplo de payload publicado pelo simulador:
+
+```json
+{
+  "temperature": 24.5,
+  "occupancy": 1,
+  "timestamp": 1795350000.0
+}
+```
+
+Os valores de temperatura e ocupação são gerados aleatoriamente pelo simulador. Embora o simulador envie um timestamp, o servidor substitui esse campo pelo horário de recebimento antes de salvar a medição.
+
+## 9. Banco de dados e persistência
+
+O banco SQLite é criado em:
+
+```text
+/data/smartrooms.db
+```
+
+Dentro do container `server`, esse caminho está associado ao volume nomeado `smartrooms_data`. Assim, os registros permanecem armazenados quando os containers são parados ou recriados, desde que o volume não seja removido.
+
+A tabela atual `measurements` contém:
+
+| Coluna | Finalidade |
+|---|---|
+| `id` | Identificador incremental da medição. |
+| `room` | Identificador da sala (`room_A`, `room_B` ou `room_C`). |
+| `temperature` | Temperatura registrada. |
+| `occupancy` | Estado de ocupação (0 ou 1). |
+| `timestamp` | Timestamp Unix atribuído pelo servidor. |
+
+### Verificar se o banco foi criado
 
 ```bash
-docker compose down
+docker compose exec server ls -l /data
 ```
 
-**Importante:** o comando `docker compose down` não remove os volumes nomeados por padrão. Portanto, os dados armazenados no banco SQLite permanecem disponíveis quando os containers são recriados.
+### Consultar as últimas medições
 
-Para remover também os volumes e apagar os dados persistidos:
+```bash
+docker compose exec server python -c "import sqlite3; c=sqlite3.connect('/data/smartrooms.db'); print(*c.execute('SELECT id, room, temperature, occupancy, timestamp FROM measurements ORDER BY id DESC LIMIT 10').fetchall(), sep='\n'); c.close()"
+```
+
+## 10. Gerenciamento dos serviços
+
+| Ação | Comando |
+|---|---|
+| Ver containers | `docker compose ps` |
+| Ver logs de todos os serviços | `docker compose logs` |
+| Acompanhar logs do servidor | `docker compose logs -f server` |
+| Reiniciar os serviços | `docker compose restart` |
+| Parar os serviços | `docker compose stop` |
+| Parar e remover containers/rede | `docker compose down` |
+| Reconstruir e iniciar | `docker compose up --build -d` |
+
+`docker compose down` preserva os volumes nomeados por padrão. Para remover também os volumes:
 
 ```bash
 docker compose down -v
 ```
 
-**Atenção:** esse último comando apaga permanentemente os dados armazenados nos volumes do projeto.
+> **Atenção:** `docker compose down -v` apaga o volume `smartrooms_data` e, consequentemente, o banco SQLite persistido. Use somente se puder descartar os dados.
 
-## 7. Rede e comunicação
+## 11. Solução de problemas
 
-Os serviços utilizam uma rede Docker do tipo bridge chamada `smartspace-net`.
+### O dashboard não abre
 
-Essa rede permite que os containers se comuniquem sem precisar expor todas as portas para a máquina hospedeira.
+1. Confira os containers com `docker compose ps`.
+2. Confira os logs com `docker compose logs --tail=100 server`.
+3. Confirme que a porta publicada aparece como `0.0.0.0:8001->8000/tcp` (ou mapeamento equivalente).
+4. Acesse `http://localhost:8001/dashboard`. A rota `/` é apenas o endpoint JSON de status.
 
-O broker MQTT utiliza a porta:
+### Não consigo conectar em `localhost:8001`
 
-```text
-1883
+Verifique o mapeamento no `docker-compose.yml`:
+
+```yaml
+ports:
+  - "8001:8000"
 ```
 
-A comunicação entre sensores e servidor ocorre internamente na rede Docker, utilizando o nome do serviço `mosquitto` como endereço do broker.
-
-O servidor pode ser acessado externamente pela porta `8000`, caso o dashboard/API esteja implementado e configurado para essa porta.
-
-## 8. Persistência dos dados
-
-O SmartSpace utiliza um volume Docker chamado `smartspace_data` para armazenar o banco SQLite.
-
-Essa estratégia permite preservar as medições mesmo quando os containers são removidos e recriados.
-
-O volume é associado ao diretório `/data` dentro do container do servidor.
-
-## 9. Solução de problemas
-
-**Os containers não inicializam:**
-
-Verifique os logs:
+Teste no próprio host:
 
 ```bash
-docker compose logs
+curl -i http://localhost:8001/
+curl -i http://localhost:8001/dashboard
 ```
 
-**O servidor não consegue conectar ao broker MQTT:**
+Se funcionar localmente, mas não a partir de outro computador, verifique o firewall e a conectividade da rede local. No Debian, UFW é apenas uma das opções de firewall; não é um requisito para executar o projeto.
 
-Verifique se o container Mosquitto está ativo e se o endereço utilizado pelo servidor é `mosquitto`, e não `localhost`.
+### O servidor não recebe mensagens MQTT
 
-**O banco de dados não é criado:**
+- Confira se `mosquitto` está ativo: `docker compose ps`.
+- Confira se `MQTT_HOST` no serviço `server` está definido como `mosquitto`.
+- Confira se sensores e servidor usam o mesmo padrão de tópico: `pjbl/{room}/environment`.
+- Consulte os logs: `docker compose logs -f mosquitto sensors server`.
 
-Verifique se a variável de ambiente `DATABASE_PATH` está configurada como `/data/smartspace.db` e se a função de inicialização do banco está sendo executada.
+### O banco não recebe medições
 
-**Os sensores não enviam dados:**
+- Confira os logs do servidor e procure mensagens `Measurement saved`.
+- Verifique se o arquivo `/data/smartrooms.db` existe no container.
+- Confira se o serviço `server` está montando o volume `smartrooms_data:/data`.
 
-Verifique se o simulador está conectado ao broker e se os tópicos MQTT utilizados pelos sensores correspondem aos tópicos assinados pelo servidor.
-
-**As dependências Python não são encontradas:**
-
-Verifique os arquivos `requirements.txt` e reconstrua as imagens:
+### Reconstruir após alterar o código
 
 ```bash
 docker compose up --build -d
 ```
 
-## 10. Considerações finais
+## 12. Limitações da versão atual
 
-O SmartSpace demonstra a integração de conceitos de Internet das Coisas (IoT), comunicação em redes, protocolos de mensagens, persistência de dados e conteinerização.
+A documentação descreve o código presente neste repositório. Na versão atual:
 
-A utilização do Docker Compose facilita a reprodução do ambiente, enquanto o MQTT permite a comunicação entre os componentes de forma desacoplada.
+- Os sensores são simulados por software; não há hardware físico conectado.
+- São gerados apenas temperatura e ocupação binária.
+- O dashboard apresenta indicadores e cartões de sala; não há gráficos históricos ou mapa interativo implementados.
+- O estado da sala é classificado como disponível quando `occupancy` é `0`, ocupada quando é maior que `0` e sem dados atuais quando não há medição recente.
+- O broker permite conexões anônimas na configuração fornecida.
+- O banco armazena medições históricas, mas a interface exibe apenas a medição mais recente de cada sala.
 
-A arquitetura também permite futuras expansões, como a implementação de um dashboard, o cálculo de índices de conforto ambiental e a geração de recomendações sobre a utilização dos espaços de estudo.
+Essas funcionalidades podem ser ampliadas em versões futuras, mas não são apresentadas aqui como recursos já implementados.
