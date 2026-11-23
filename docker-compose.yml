@@ -22,14 +22,16 @@ services:
       - smartspace-net
 
   server:
-    build: ./server
+    build:
+      context: .
+      dockerfile: server/Dockerfile
     container_name: smartspace-server
     environment:
       MQTT_HOST: mosquitto
       DATABASE_PATH: /data/smartspace.db
       PYTHONUNBUFFERED: 1
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
       - smartspace_data:/data
     depends_on:

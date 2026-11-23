@@ -6,7 +6,7 @@ import math
 
 import paho.mqtt.client as mqtt
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 
 from database import (
     initialize,
@@ -15,7 +15,14 @@ from database import (
 )
 
 
-app = Flask(__name__)
+
+app = Flask(
+    __name__,
+    template_folder="../dashboard/templates",
+    static_folder="../dashboard/static",
+    static_url_path="/static"
+)
+
 
 MQTT_HOST = os.getenv("MQTT_HOST", "localhost")
 SENSOR_TIMEOUT_SECONDS = 60
@@ -234,6 +241,10 @@ def metrics_endpoint():
         ),
         "total_rooms": len(rooms)
     })
+
+@app.route("/dashboard", methods=["GET"])
+def dashboard():
+    return render_template("index.html")
 
 
 # ============================================================

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SmartSpace | Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/dashboard.js" defer></script>
+</head>
+<body>
+    <header>
+        <h1>SMARTSPACE</h1>
+        <p>Monitoramento de ambientes de estudo</p>
+    </header>
+
+    <main>
+        <section class="metrics">
+            <article>
+                <h2>Disponíveis</h2>
+                <strong id="available">—</strong>
+            </article>
+            <article>
+                <h2>Ocupadas</h2>
+                <strong id="occupied">—</strong>
+            </article>
+            <article>
+                <h2>Sem dados</h2>
+                <strong id="unknown">—</strong>
+            </article>
+        </section>
+
+        <section>
+            <h2>Situação das salas</h2>
+            <p id="connection">Aguardando informações...</p>
+            <div id="rooms" class="rooms"></div>
+        </section>
+    </main>
+</body>
+</html>

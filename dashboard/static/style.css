@@ -1,0 +1,91 @@
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f4f5f6;
+    color: #20252a;
+}
+
+header {
+    background: #202a33;
+    color: white;
+    padding: 24px 5%;
+}
+
+header h1 {
+    margin: 0;
+    letter-spacing: 2px;
+}
+
+header p {
+    margin-bottom: 0;
+    color: #cbd2d8;
+}
+
+main {
+    max-width: 1100px;
+    margin: 32px auto;
+    padding: 0 20px;
+}
+
+.metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.metrics article, .room {
+    background: white;
+    border: 1px solid #d6dce0;
+    padding: 20px;
+}
+
+.metrics h2 {
+    font-size: 14px;
+    font-weight: normal;
+    margin: 0 0 12px;
+}
+
+.metrics strong {
+    font-size: 32px;
+}
+
+.rooms {
+    display: grid;
+    gap: 12px;
+}
+
+.room {
+    border-left: 5px solid #89939c;
+}
+
+.room.available {
+    border-left-color: #2b8055;
+}
+
+.room.occupied {
+    border-left-color: #b35c36;
+}
+
+.room.unknown {
+    border-left-color: #89939c;
+}
+
+.room h3 {
+    margin-top: 0;
+}
+
+.room p {
+    color: #58636d;
+    font-size: 14px;
+}
+
+@media (max-width: 600px) {
+    .metrics {
+        grid-template-columns: 1fr;
+    }
+}
