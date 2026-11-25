@@ -11,6 +11,12 @@ client = mqtt.Client(
 )
 
 host = os.getenv("MQTT_HOST", "localhost")
+
+client.username_pw_set(
+    os.getenv("MQTT_USER"),
+    os.getenv("MQTT_PASSWORD")
+)
+
 client.connect(host, 1883, 60)
 client.loop_start()
 

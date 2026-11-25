@@ -28,7 +28,8 @@ services:
     container_name: smartrooms-server
     environment:
       MQTT_HOST: mosquitto
-      DATABASE_PATH: /data/smartrooms.db
+      MQTT_USER: ${MQTT_USER}
+      MQTT_PASSWORD: ${MQTT_PASSWORD}
       PYTHONUNBUFFERED: 1
     ports:
       - "8001:8000"

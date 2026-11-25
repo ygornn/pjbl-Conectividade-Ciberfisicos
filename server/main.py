@@ -109,6 +109,11 @@ def get_rooms():
 
 def on_connect(client, userdata, flags, reason_code, properties):
 
+    client.username_pw_set(
+        os.getenv("MQTT_USER"),
+        os.getenv("MQTT_PASSWORD")
+    )
+
     print("Connected to MQTT broker!", flush=True)
 
     client.subscribe("pjbl/+/environment")
