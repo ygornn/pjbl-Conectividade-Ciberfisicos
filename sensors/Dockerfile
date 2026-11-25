@@ -8,4 +8,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY simulator.py .
 
+RUN useradd --create-home --uid 10001 appuser \
+    && chown -R appuser:appuser /app
+
+USER appuser
+
 CMD ["python", "simulator.py"]

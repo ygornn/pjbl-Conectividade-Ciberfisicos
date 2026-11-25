@@ -6,6 +6,7 @@ services:
     container_name: smartrooms-broker
     volumes:
       - ./broker/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./broker/passwordfile:/mosquitto/config/passwordfile
       - mqtt_data:/mosquitto/data
     networks:
       - smartrooms-net
@@ -15,6 +16,8 @@ services:
     container_name: smartrooms-sensors
     environment:
       MQTT_HOST: mosquitto
+      MQTT_USER: ${MQTT_USER}
+      MQTT_PASSWORD: ${MQTT_PASSWORD}
     depends_on:
       - mosquitto
     restart: unless-stopped

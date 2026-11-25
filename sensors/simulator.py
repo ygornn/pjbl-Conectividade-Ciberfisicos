@@ -1,4 +1,3 @@
-
 import os
 import json
 import time
@@ -11,11 +10,10 @@ client = mqtt.Client(
 )
 
 host = os.getenv("MQTT_HOST", "localhost")
+username = os.getenv("MQTT_USER")
+password = os.getenv("MQTT_PASSWORD")
 
-client.username_pw_set(
-    os.getenv("MQTT_USER"),
-    os.getenv("MQTT_PASSWORD")
-)
+client.username_pw_set(username, password)
 
 client.connect(host, 1883, 60)
 client.loop_start()
